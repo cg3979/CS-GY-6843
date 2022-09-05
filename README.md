@@ -1,4 +1,4 @@
 # CS-GY-6843
-Computer Networking 
+Cyber Fellows
 
-This repo is for the Fall '22 Semester
+This repo is for the Fall '22 Semester of Comptuer Networking
