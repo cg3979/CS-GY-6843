@@ -24,10 +24,10 @@ def welcome_assignment_answers(question):
     elif question == "What layer of the TCP/IP model does the protocol ICMP belong to? - The answer should be an integer number":
         answer = int("3") #Use 5-Layer from Slide 71
     
-    ##else:
+    else:
         ### you should understand why this else case should be included
         ### what happens if there is a typo in one of the questions?
-        ##answer = ""
+        answer = ""
     return(answer)
 # Complete all the questions.
 
