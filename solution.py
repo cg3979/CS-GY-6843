@@ -1,65 +1,77 @@
-# import socket module
 from socket import *
-# In order to terminate the program
-import sys
 
 
-def webServer(port=13331):
-    serverSocket = socket(AF_INET, SOCK_STREAM)
+def smtp_client(port=1025, mailserver='127.0.0.1'):
+    msg = "\r\n It's not what I am underneath, but what I do that defines me"
+    endmsg = "\r\n.\r\n"
 
-    # Prepare a server socket
-    serverSocket.bind(("127.0.0.1", port))
+    # Choose a mail server (e.g. Google mail server) if you want to verify the script beyond GradeScope
+    mailServer = smtp.gmail.com
+    # Create socket called clientSocket and establish a TCP connection with mailserver and port
 
     # Fill in start
-    serverSocket.listen(10)
+    clientSocket = socket(AF_INET, SOCK_STREAM)
+    clientSocket.connect(mailServer)
     # Fill in end
 
-    while True:
-        # Establish the connection
+    recv = clientSocket.recv(1024).decode()
+    #print(recv) #You can use these print statement to validate return codes from the server.
+    #if recv[:3] != '220':
+    #    print('220 reply not received from server.')
 
-        print('Ready to serve...')
-        connectionSocket, addr = serverSocket.accept()  # Fill in start -are you accepting connections?     #Fill in end
+    # Send HELO command and print server response.
+    heloCommand = 'HELO Alice\r\n'
+    clientSocket.send(heloCommand.encode())
+    recv1 = clientSocket.recv(1024).decode()
+    #print(recv1)
+    #if recv1[:3] != '250':
+    #    print('250 reply not received from server.')
 
-        try:
-            message = connectionSocket.recv(1024).decode()  # Fill in start -a client is sending you a message   #Fill in end
-            filename = message.split()[1]
-
-            # opens the client requested file.
-            # Plenty of guidance online on how to open and read a file in python. How should you read it though if you plan on sending it through a socket?
-            f = open(filename[1:])  # fill in start #fill in end)
-                    # fill in end
-            outputdata = f.read()
-                    # Fill in start -This variable can store your headers you want to send for any valid or invalid request.
-            # Content-Type above is an example on how to send a header as bytes
-            # Fill in end
-
-            # Send an HTTP header line into socket for a valid request. What header should be sent for a response that is ok?
-            # Note that a complete header must end with a blank line, creating the four-byte sequence "\r\n\r\n" Refer to https://w3.cs.jmu.edu/kirkpams/OpenCSF/Books/csf/html/TCPSockets.html
-            # Fill in start
-            connectionSocket.send("HTTP/1.1 200 OK \r\n\r\n".encode())
-            # Fill in end
-
-            # Send the content of the requested file to the client
-            for i in range(0, len(outputdata)):
-                connectionSocket.send(outputdata[i].encode())# for line in file
-            # Fill in start - send your html file contents #Fill in end
-            connectionSocket.close()  # closing the connection socket
-
-        except Exception as e:
-    # Send response message for invalid request due to the file not being found (404)
+    # Send MAIL FROM command and handle server response.
     # Fill in start
-         connectionSocket.send("HTTP/1.1 404 File Not Found \r\n\r\n".encode()) 
+    mailFrom = "Mail From:<cgtest123@gmail.com>\r\n"
+    clientSocket.send(mailFrom.encode())
+    recv2 = clientSocket.recv(1024)
+    print(recv2)
     # Fill in end
 
-    # Close client socket
+    # Send RCPT TO command and handle server response.
     # Fill in start
-         connectionSocket.close()
+    rcptTo = "Reciept To:<cg3979@nyu.edu>\r\n"
+    clientSocket.send(rcptTo.encode())
+    recv3 = clientSocket.recv(1024)
+    print(recv3)
     # Fill in end
 
-    # Commenting out the below, as its technically not required and some students have moved it erroneously in the While loop. DO NOT DO THAT OR YOURE GONNA HAVE A BAD TIME.
-    # serverSocket.close()
-    # sys.exit()  # Terminate the program after sending the corresponding data
+    # Send DATA command and handle server response.
+    # Fill in start
+    dataCommand = "Data\r\n"
+    clientSocket.send(dataCommand.encode())
+    recv4 = clientSocket.recv(1024)
+    print(recv4)
+    # Fill in end
+
+    # Send message data.
+    # Fill in start
+    clientSocket.send(msg.encocde())
+    # Fill in end
+
+    # Message ends with a single period, send message end and handle server response.
+    # Fill in start
+    clientSocket.send(endmsg.encode())
+    recv5 = clientSocket.recv(1024)
+    print(recv5)
+    # Fill in end
+
+    # Send QUIT command and handle server response.
+    # Fill in start
+    noMas = "Quit\r\n"
+    clientSocket.send(noMas.encode())
+    recv6 = clientSocket.rev(1024)
+    print(recv6)
+    clientSocket.close()
+    # Fill in end
 
 
-##if __name__ == "__main__":
-    ##webServer(13331)
+##if __name__ == '__main__':
+   # smtp_client(1025, '127.0.0.1')
