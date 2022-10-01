@@ -1,7 +1,7 @@
 from socket import *
 
 
-def smtp_client(port=1025, mailserver='127.0.0.1'):
+def smtp_client(port=1025, mailserver='smtp.nyu.edu'):
     msg = "\r\n It's not what I am underneath, but what I do that defines me"
     endmsg = "\r\n.\r\n"
 
