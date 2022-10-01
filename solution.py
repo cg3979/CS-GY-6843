@@ -73,5 +73,5 @@ def smtp_client(port=1025, mailserver='127.0.0.1'):
     # Fill in end
 
 
-#if __name__ == '__main__':
-   #smtp_client()
+if __name__ == '__main__':
+   smtp_client()
