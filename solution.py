@@ -142,7 +142,7 @@ def ping(host, timeout=1):
     """
     minimum = min(val_delay) * 1000
     maximum = max(val_delay) * 1000
-    average = (ym/4)
+    average = (ym/4) * 1000
     deviation = statistics.stdev(val_delay) * 1000
 
     # You should have the values of delay for each ping here structured in a pandas dataframe;
