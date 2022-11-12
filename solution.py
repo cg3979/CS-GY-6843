@@ -50,11 +50,13 @@ def receiveOnePing(mySocket, ID, timeout, destAddr):
         # Fill in start
         #Fetch the ICMP header from the IP packet
         my_Header = recPacket[20:28]
-        code, my_checksum, packID, seq = struct.unpack("bbHHh", my_Header)
+        #print(struct.unpack("bbHHh", my_Header))
+        #exit()
+        i, code, my_checksum, packID, seq = struct.unpack("bbHHh", my_Header)
 
         if my_Header !=8 and packID ==ID:
             Dembytes = struct.calcsize("d")
-            timesent = struct.unpack("d", recPacket[28:28] + Dembytes)[0]
+            timesent = struct.unpack("d", recPacket[28:28 + Dembytes])[0]
             return timeReceived - timesent
         # Fill in end
 
@@ -142,7 +144,7 @@ def ping(host, timeout=1):
     maximum = max(val_delay) * 1000
     average = (ym/4)
     deviation = statistics.stdev(val_delay) * 1000
-    
+
     # You should have the values of delay for each ping here structured in a pandas dataframe;
     # fill in calculation for packet_min, packet_avg, packet_max, and stdev
     vars = pd.DataFrame(columns=['min', 'avg', 'max', 'stddev'])
@@ -155,3 +157,4 @@ def ping(host, timeout=1):
 
 if __name__ == '__main__':
     ping("google.com")
+
