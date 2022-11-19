@@ -51,10 +51,20 @@ def build_packet():
     #Fill in end
 
     # So the function ending should look like this
-    datChecksum = 0
+    myChecksum = 0
+    ID = os.getpid() & 0xFFFF
+    header = struct.pack("bbHHh", ICMP_ECHO_REQUEST, 0, myChecksum, ID, 1)
+    data = struct.pack("d", time.time())
+    myChecksum = checksum(header + data)
 
-    myHeader = struct.pack('bbHHh', ICMP_ECHO_REQUEST, 0, datChecksum)
-    myData = struct.pack('d', time.time())
+    if sys.platform == 'darwin':
+        # Convert 16-bit integers from host to network  byte order
+        myChecksum = htons(myChecksum) & 0xffff
+    else:
+        myChecksum = htons(myChecksum)
+
+    header = struct.pack("bbHHh", ICMP_ECHO_REQUEST, 0, myChecksum, ID, 1)
+
     packet = header + data
     return packet
 
@@ -84,7 +94,7 @@ def get_route(hostname):
                 if whatReady[0] == []: # Timeout
 
                     #print "......... Request Timed Out........."
-                    df.append({'Hop Count': ttl,
+                    df = df.append({'Hop Count': ttl,
                                     'Try': TRIES,
                                     'IP': "timeout",
                                     'Hostname': "timeout",
@@ -101,7 +111,7 @@ def get_route(hostname):
                 timeLeft = timeLeft - howLongInSelect
                 if timeLeft <= 0:
                     #Fill in start
-                    df.append({'Hop Count': ttl,
+                    df = df.append({'Hop Count': ttl,
                                     'Try': TRIES,
                                     'IP': "timeout",
                                     'Hostname': "timeout",
@@ -120,6 +130,7 @@ def get_route(hostname):
                 #Fetch the icmp type from the IP packet
                 myType = recvPacket[20:28]
                 i, code, my_checksum, packID, seq = struct.unpack("bbHHh", myType)
+                types = i
                 #Fill in end
                 try: #try to fetch the hostname
                     #Fill in start
@@ -137,7 +148,7 @@ def get_route(hostname):
                     #Fill in start
                     print("%d rtt=%.0f ms %s" % (ttl,(timeReceived -t)*100, addr[0]))
                     #You should update your dataframe with the required column field responses here
-                    df.append({'Hop Count': ttl,
+                    df = df.append({'Hop Count': ttl,
                                     'Try': TRIES,
                                     'IP': addr[0],
                                     'Hostname': destHost,
@@ -150,7 +161,7 @@ def get_route(hostname):
                     #Fill in start
                     print("%d rtt=%.0f ms %s" % (ttl, (timeReceived - t) * 100, addr[0]))
                     #You should update your dataframe with the required column field responses here
-                    df.append({'Hop Count': ttl,
+                    df = df.append({'Hop Count': ttl,
                                     'Try': TRIES,
                                     'IP': addr[0],
                                     'Hostname': destHost,
@@ -163,7 +174,7 @@ def get_route(hostname):
                     #Fill in start
                     print("%d rtt=%.0f ms %s" % (ttl, (timeReceived - t) * 100, addr[0]))
                     #You should update your dataframe with the required column field responses here
-                    df.append({'Hop Count': ttl,
+                    df = df.append({'Hop Count': ttl,
                                     'Try': TRIES,
                                     'IP': addr[0],
                                     'Hostname': destHost,
@@ -173,7 +184,7 @@ def get_route(hostname):
                 else:
                     #Fill in start
                     #If there is an exception/error to your if statements, you should append that to your df here
-                    df.append({'Hop Count': ttl,
+                    df = df.append({'Hop Count': ttl,
                                     'Try': TRIES,
                                     'IP': "Error",
                                     'Hostname': "Error",
