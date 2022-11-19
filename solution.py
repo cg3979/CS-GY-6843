@@ -1,4 +1,3 @@
-import statistics
 from socket import *
 import os
 import sys
@@ -9,9 +8,15 @@ import binascii
 import pandas as pd
 
 ICMP_ECHO_REQUEST = 8
-
+MAX_HOPS = 30
+TIMEOUT = 2.0
+TRIES = 1
+# The packet that we shall send to each router along the path is the ICMP echo
+# request packet, which is exactly what we had used in the ICMP ping exercise.
+# We shall use the same packet that we built in the Ping exercise
 
 def checksum(string):
+# In this function we make the checksum of our packet
     csum = 0
     countTo = (len(string) // 2) * 2
     count = 0
@@ -33,128 +38,152 @@ def checksum(string):
     answer = answer >> 8 | (answer << 8 & 0xff00)
     return answer
 
+def build_packet():
+    #Fill in start
+    # In the sendOnePing() method of the ICMP Ping exercise ,firstly the header of our
+    # packet to be sent was made, secondly the checksum was appended to the header and
+    # then finally the complete packet was sent to the destination.
 
-def receiveOnePing(mySocket, ID, timeout, destAddr):
-    timeLeft = timeout
+    # Make the header in a similar way to the ping exercise.
+        # Append checksum to the header.
 
-    while 1:
-        startedSelect = time.time()
-        whatReady = select.select([mySocket], [], [], timeLeft)
-        howLongInSelect = (time.time() - startedSelect)
-        if whatReady[0] == []:  # Timeout
-            return "Request timed out."
+    # Don’t send the packet yet , just return the final packet in this function.
+    #Fill in end
 
-        timeReceived = time.time()
-        recPacket, addr = mySocket.recvfrom(1024)
+    # So the function ending should look like this
+    datChecksum = 0
 
-        # Fill in start
-        #Fetch the ICMP header from the IP packet
-        my_Header = recPacket[20:28]
-        #print(struct.unpack("bbHHh", my_Header))
-        #exit()
-        i, code, my_checksum, packID, seq = struct.unpack("bbHHh", my_Header)
-
-        if my_Header !=8 and packID ==ID:
-            Dembytes = struct.calcsize("d")
-            timesent = struct.unpack("d", recPacket[28:28 + Dembytes])[0]
-            return timeReceived - timesent
-        # Fill in end
-
-        timeLeft = timeLeft - howLongInSelect
-
-        if timeLeft <= 0:
-            return "Request timed out."
-
-
-def sendOnePing(mySocket, destAddr, ID):
-    # Header is type (8), code (8), checksum (16), id (16), sequence (16)
-
-    myChecksum = 0
-    # Make a dummy header with a 0 checksum
-    # struct -- Interpret strings as packed binary data
-    header = struct.pack("bbHHh", ICMP_ECHO_REQUEST, 0, myChecksum, ID, 1)
-    data = struct.pack("d", time.time())
-    # Calculate the checksum on the data and the dummy header.
-    myChecksum = checksum(header + data)
-
-    # Get the right checksum, and put in the header
-
-    if sys.platform == 'darwin':
-        # Convert 16-bit integers from host to network  byte order
-        myChecksum = htons(myChecksum) & 0xffff
-    else:
-        myChecksum = htons(myChecksum)
-
-    header = struct.pack("bbHHh", ICMP_ECHO_REQUEST, 0, myChecksum, ID, 1)
+    myHeader = struct.pack('bbHHh', ICMP_ECHO_REQUEST, 0, datChecksum)
+    myData = struct.pack('d', time.time())
     packet = header + data
+    return packet
 
-    mySocket.sendto(packet, (destAddr, 1))  # AF_INET address must be tuple, not str
+def get_route(hostname):
+    timeLeft = TIMEOUT
+    df = pd.DataFrame(columns=['Hop Count', 'Try', 'IP', 'Hostname', 'Response Code'])
 
-    # Both LISTS and TUPLES consist of a number of objects
-    # which can be referenced by their position number within the object.
+    for ttl in range(1,MAX_HOPS):
+        for tries in range(TRIES):
+            destAddr = gethostbyname(hostname)
 
+            #Fill in start
+            # Make a raw socket named mySocket
+            #Fill in end
+            icmp = getprotobyname("icmp")
+            mySocket = socket(AF_INET, SOCK_RAW, icmp)
 
-def doOnePing(destAddr, timeout):
-    icmp = getprotobyname("icmp")
+            mySocket.setsockopt(IPPROTO_IP, IP_TTL, struct.pack('I', ttl))
+            mySocket.settimeout(TIMEOUT)
+            try:
+                d = build_packet()
+                mySocket.sendto(d, (hostname, 0))
+                t= time.time()
+                startedSelect = time.time()
+                whatReady = select.select([mySocket], [], [], timeLeft)
+                howLongInSelect = (time.time() - startedSelect)
+                if whatReady[0] == []: # Timeout
 
-    # SOCK_RAW is a powerful socket type. For more details:   https://sock-raw.org/papers/sock_raw
-    mySocket = socket(AF_INET, SOCK_RAW, icmp)
+                    #print "......... Request Timed Out........."
+                    df.append({'Hop Count': ttl,
+                                    'Try': TRIES,
+                                    'IP': "timeout",
+                                    'Hostname': "timeout",
+                                    'Response Code': "timeout"},
+                                   ignore_index=True)
+                    #Fill in start
 
-    myID = os.getpid() & 0xFFFF  # Return the current process i
-    sendOnePing(mySocket, destAddr, myID)
-    delay = receiveOnePing(mySocket, myID, timeout, destAddr)
-    mySocket.close()
-    return delay
+                    #append response to your dataframe including hop #, try #, and "Timeout" responses as required by the acceptance criteria
+                    print (df)
+                    #Fill in end
 
+                recvPacket, addr = mySocket.recvfrom(1024)
+                timeReceived = time.time()
+                timeLeft = timeLeft - howLongInSelect
+                if timeLeft <= 0:
+                    #Fill in start
+                    df.append({'Hop Count': ttl,
+                                    'Try': TRIES,
+                                    'IP': "timeout",
+                                    'Hostname': "timeout",
+                                    'Response Code': "timeout"},
+                                   ignore_index=True)
 
-def ping(host, timeout=1):
-    # timeout=1 means: If one second goes by without a reply from the server,
-    # the client assumes that either the client's ping or the server's pong is lost
-    dest = gethostbyname(host)
-    print("\nPinging " + dest + " using Python:")
-    print("")
+                    #append response to your dataframe including hop #, try #, and "Timeout" responses as required by the acceptance criteria
+                    print (df)
+                    #Fill in end
+            except Exception as e:
+                #print (e) # uncomment to view exceptions
+                continue
 
-    response = pd.DataFrame(columns=['bytes', 'rtt',
-                                     'ttl'])  # This creates an empty dataframe with 3 headers with the column specific names declared
+            else:
+                #Fill in start
+                #Fetch the icmp type from the IP packet
+                myType = recvPacket[20:28]
+                i, code, my_checksum, packID, seq = struct.unpack("bbHHh", myType)
+                #Fill in end
+                try: #try to fetch the hostname
+                    #Fill in start
+                    destHost = gethostbyaddr(addr[0])[0]
+                    #Fill in end
+                except herror:   #if the host does not provide a hostname
+                    #Fill in start
+                    destHost = "Hostname Not Returnable"
+                    #Fill in end
 
-    # Send ping requests to a server separated by approximately one second
-    # Add something here to collect the delays of each ping in a list so you can calculate vars after your ping
-    val_delay = []
-    ym = 0
-    for i in range(0, 4):  # Four pings will be sent (loop runs for i=0, 1, 2, 3)
-        delay = doOnePing(dest, timeout)  # what is stored into delay and statistics?
-         # store your bytes, rtt, and ttle here in your response pandas dataframe. An example is commented out below for vars
-        val_delay.append(delay)
-        ym += delay
-        print(delay)
-        time.sleep(1)  # wait one second
-    """
-    packet_lost = 0
-    packet_recv = 0
-    # fill in start. UPDATE THE QUESTION MARKS
-    
-    # for index, row in response.iterrows():
-        if ???? == 0:  # access your response df to determine if you received a packet or not
-            packet_lost =  # ????
-        else:
-            packet_recv =  # ????
-     fill in end
-    """
-    minimum = min(val_delay) * 1000
-    maximum = max(val_delay) * 1000
-    average = (ym/4) * 1000
-    deviation = statistics.stdev(val_delay) * 1000
+                if types == 11:
+                    bytes = struct.calcsize("d")
+                    timeSent = struct.unpack("d", recvPacket[28:28 +
+                    bytes])[0]
+                    #Fill in start
+                    print("%d rtt=%.0f ms %s" % (ttl,(timeReceived -t)*100, addr[0]))
+                    #You should update your dataframe with the required column field responses here
+                    df.append({'Hop Count': ttl,
+                                    'Try': TRIES,
+                                    'IP': addr[0],
+                                    'Hostname': destHost,
+                                    'Response Code': 11},
+                                   ignore_index=True)
+                    #Fill in end
+                elif types == 3:
+                    bytes = struct.calcsize("d")
+                    timeSent = struct.unpack("d", recvPacket[28:28 + bytes])[0]
+                    #Fill in start
+                    print("%d rtt=%.0f ms %s" % (ttl, (timeReceived - t) * 100, addr[0]))
+                    #You should update your dataframe with the required column field responses here
+                    df.append({'Hop Count': ttl,
+                                    'Try': TRIES,
+                                    'IP': addr[0],
+                                    'Hostname': destHost,
+                                    'Response Code': 3},
+                                   ignore_index=True)
+                    #Fill in end
+                elif types == 0:
+                    bytes = struct.calcsize("d")
+                    timeSent = struct.unpack("d", recvPacket[28:28 + bytes])[0]
+                    #Fill in start
+                    print("%d rtt=%.0f ms %s" % (ttl, (timeReceived - t) * 100, addr[0]))
+                    #You should update your dataframe with the required column field responses here
+                    df.append({'Hop Count': ttl,
+                                    'Try': TRIES,
+                                    'IP': addr[0],
+                                    'Hostname': destHost,
+                                    'Response Code': 0},
+                                   ignore_index=True)
+                    #Fill in end
+                else:
+                    #Fill in start
+                    #If there is an exception/error to your if statements, you should append that to your df here
+                    df.append({'Hop Count': ttl,
+                                    'Try': TRIES,
+                                    'IP': "Error",
+                                    'Hostname': "Error",
+                                    'Response Code': "Error"},
+                                   ignore_index=True)
+                    #Fill in end
 
-    # You should have the values of delay for each ping here structured in a pandas dataframe;
-    # fill in calculation for packet_min, packet_avg, packet_max, and stdev
-    vars = pd.DataFrame(columns=['min', 'avg', 'max', 'stddev'])
-    vars = vars.append({'min': str(round(minimum, 2)), 'avg': str(round(average, 2)),
-                        'max': str(round(maximum, 2)), 'stddev': str(round(deviation, 2))},
-                       ignore_index=True)
-    print(vars)  # make sure your vars data you are returning resembles acceptance criteria
-    return vars
-
+                break
+    print(df)
+    return df
 
 if __name__ == '__main__':
-    ping("google.com")
-
+    get_route("google.co.il")
